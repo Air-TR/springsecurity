@@ -1,5 +1,7 @@
 package com.tr.springsecurity.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.tr.springsecurity.constant.RedisKey;
 import com.tr.springsecurity.entity.User;
 import com.tr.springsecurity.service.LoginAndOutService;
 import com.tr.springsecurity.util.JwtUtil;
@@ -11,7 +13,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -34,18 +35,21 @@ public class LoginAndOutServiceImpl implements LoginAndOutService {
         if (Objects.isNull(authenticate)) {
             throw new RuntimeException("用户名或密码错误");
         }
+        // 获取 userDetail
+        org.springframework.security.core.userdetails.User userDetail = (org.springframework.security.core.userdetails.User) authenticate.getPrincipal();
         // 使用 username 生成 token（如要用 user_id 生成，根据 username 去获取 user_id）
-//        org.springframework.security.core.userdetails.User userDetail = (org.springframework.security.core.userdetails.User) authenticate.getPrincipal();
-//        String userId = loginUser.getId().toString();
-        String token = JwtUtil.createJWT(user.getUsername());
-        // authenticate 存入redis
-        stringRedisTemplate.opsForValue().set("TOKEN:" + user.getUsername(), token, 600, TimeUnit.SECONDS);
+        String token = JwtUtil.createJWT(userDetail.getUsername());
+        // token 存入 redis
+        stringRedisTemplate.opsForValue().set(RedisKey.TOKEN + userDetail.getUsername(), token, 3600, TimeUnit.SECONDS);
+        // authorities 存入 redis
+        stringRedisTemplate.opsForValue().set(RedisKey.AUTHORITIES + userDetail.getUsername(), JSON.toJSONString(userDetail.getAuthorities()), 3600, TimeUnit.SECONDS);
         return ResponseEntity.ok(token);
     }
 
     @Override
-    public ResponseEntity logout() {
-        return null;
+    public ResponseEntity logout(String token) {
+        String username = JwtUtil.getUsername(token);
+        return ResponseEntity.ok(stringRedisTemplate.delete(RedisKey.TOKEN + username) && stringRedisTemplate.delete(RedisKey.AUTHORITIES + username));
     }
 
 }

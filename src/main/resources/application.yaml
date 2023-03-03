@@ -24,6 +24,10 @@ spring:
     min-idle: 0     # 连接池中的最小空闲连接
     timeout: 5000   # 连接超时
 
+swagger:
+  enable: true
+
 # 不加入 spring-security 管理的 path
+## 排除 swagger：/swagger-resources/**,/swagger-ui.html,/v2/api-docs,/webjars/**
 security:
-  ex-path: /user/login,/nf/**
+  ex-path: /user/login,/nf/**,/swagger-resources/**,/swagger-ui.html,/v2/api-docs,/webjars/**

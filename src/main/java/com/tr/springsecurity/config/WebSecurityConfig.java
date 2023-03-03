@@ -53,19 +53,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         /** 来自于 orion */
-//        http.authorizeRequests()
-//            .antMatchers(securityExPath.split(","))
-//            .permitAll().and()
-//            .authorizeRequests().anyRequest().authenticated()
-//            .and().csrf().disable().cors();
+        http.authorizeRequests()
+            .antMatchers(securityExPath.split(","))
+            .permitAll().and()
+            .authorizeRequests().anyRequest().authenticated()
+            .and().csrf().disable().cors();
 
         /** 来自于网上 */
-        http.csrf().disable() // 关闭 csrf
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 不通过 Session 获取 SecurityContext
-            .and()
-            .authorizeRequests()
-            .antMatchers(securityExPath.split(",")).anonymous() // 允许匿名访问的路径
-            .anyRequest().authenticated(); // 除上面外的所有请求全部需要鉴权认证
+//        http.csrf().disable() // 关闭 csrf
+//            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 不通过 Session 获取 SecurityContext
+//            .and()
+//            .authorizeRequests()
+//            .antMatchers(securityExPath.split(",")).anonymous() // 允许匿名访问的路径
+//            .anyRequest().authenticated(); // 除上面外的所有请求全部需要鉴权认证
 
         // 把 token 校验过滤器添加到过滤器链中
         http.addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);

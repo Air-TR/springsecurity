@@ -1,10 +1,13 @@
 package com.tr.springsecurity.config.filter;
 
+import com.alibaba.fastjson.JSON;
+import com.tr.springsecurity.constant.RedisKey;
 import com.tr.springsecurity.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -15,6 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -33,32 +37,26 @@ public class TokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 获取 token
-        String token = request.getHeader("token");
+        String token = request.getHeader("Authorization");
         if (StringUtils.isBlank(token)) {
             // 放行
             filterChain.doFilter(request, response);
             return;
         }
-
-        // 解析 token
-        String username;
-        try {
-            Claims claims = JwtUtil.parseJWT(token);
-            username = claims.getSubject();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("无效 token");
-        }
+        // 解析 token 获取用户名
+        String username = JwtUtil.getUsername(token);
         // 从 redis 中获取用户信息
-        String tokenKey = "TOKEN:" + username;
-        String user = stringRedisTemplate.opsForValue().get(tokenKey);
-        if(Objects.isNull(user)){
+        String userToken = stringRedisTemplate.opsForValue().get(RedisKey.TOKEN + username);
+        if (Objects.isNull(userToken)) {
             throw new RuntimeException("用户未登录");
         }
-        // 存入 SecurityContextHolder
-        // TODO 获取权限信息封装到 Authentication 中
+        // 从 redis 中获取用户权限
+        String authoritiesValue = stringRedisTemplate.opsForValue().get(RedisKey.AUTHORITIES + username);
+        List<SimpleGrantedAuthority> authorities = JSON.parseArray(authoritiesValue, SimpleGrantedAuthority.class);
+        // 构造 UsernamePasswordAuthenticationToken
         UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(user,null,null);
+                new UsernamePasswordAuthenticationToken(userToken, null, authorities);
+        // 存入 SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         // 放行
         filterChain.doFilter(request, response);

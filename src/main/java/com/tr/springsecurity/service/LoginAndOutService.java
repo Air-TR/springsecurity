@@ -6,6 +6,6 @@ import org.springframework.http.ResponseEntity;
 public interface LoginAndOutService {
 
     ResponseEntity login(User user);
-    ResponseEntity logout();
+    ResponseEntity logout(String token);
 
 }
